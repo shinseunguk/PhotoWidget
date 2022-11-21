@@ -23,6 +23,12 @@ class SearchView : UIView{
         return searchTextField
     }()
     
+    let tView : UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        return view
+    }()
+    
     let tableView : UITableView = {
         let tableView = UITableView()
         tableView.backgroundColor = .white
@@ -37,6 +43,13 @@ class SearchView : UIView{
         return uiButton
     }()
     
+    let tableLabel : UILabel = {
+        let label = UILabel()
+        label.text = "책 제목을 검색해주세요 😊"
+        label.textColor = .systemBlue
+        return label
+    }()
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = .white
@@ -47,8 +60,10 @@ class SearchView : UIView{
         
         
         addSubview(searchTextField)
-        addSubview(tableView)
+//        addSubview(tableView)
         addSubview(uiButton)
+        addSubview(tView)
+        tView.addSubview(tableLabel)
         
         
         searchTextField.snp.makeConstraints {(make) in
@@ -57,11 +72,23 @@ class SearchView : UIView{
             make.rightMargin.equalTo(-20)
         }
         
-        tableView.snp.makeConstraints {(make) in
+        tView.snp.makeConstraints {(make) in
             make.topMargin.equalTo(searchTextField.snp.bottom).offset(30)
             make.leftMargin.equalTo(20)
             make.rightMargin.equalTo(-20)
             make.bottomMargin.equalTo(-10)
+        }
+        
+//        tableView.snp.makeConstraints {(make) in
+//            make.topMargin.equalTo(0)
+//            make.leftMargin.equalTo(0)
+//            make.rightMargin.equalTo(0)
+//            make.bottomMargin.equalTo(0)
+//        }
+        
+        tableLabel.snp.makeConstraints {(make) in
+            make.centerX.equalTo(tView.snp.centerX)
+            make.centerY.equalTo(tView.snp.centerY)
         }
         
         uiButton.snp.makeConstraints {(make) in
@@ -79,8 +106,13 @@ class SearchView : UIView{
     
     @objc func textFieldDidChange(_ sender: Any){
         let searchText = searchTextField.text ?? ""
-        print(searchText)
-//        APIRequest(searchText)
+        if searchText.isEmpty { // 비어있음
+            tableLabel.text = "책 제목을 검색해주세요 😊"
+            tableLabel.textColor = .systemBlue
+        }else {
+            print(searchText)
+            APIRequest(searchText)
+        }
     }
     
     @objc func btnAction() {
@@ -90,7 +122,8 @@ class SearchView : UIView{
     }
     
     func APIRequest(_ searchText: String) {
-            let url = "http://openlibrary.org/search.json?author=\(searchText)"
+//            let url = "http://openlibrary.org/search.json?author=\(searchText)"
+        let url = "http://openlibrary.org/search.json?title=fnqwueifniqwuni"
             AF.request(url,
                        method: .get,
                        parameters: nil,
@@ -99,7 +132,28 @@ class SearchView : UIView{
                 .validate(statusCode: 200..<300)
                 .responseJSON { (json) in
                     //여기서 가져온 데이터를 자유롭게 활용하세요.
-                    print(json)
+                    print(json.value!)
+                    guard let result = json.value as? [String: Any] else { return }
+//                    guard let object = result["numFound"] as? [String: Any] else { return }
+                    
+                    print("result => ",result)
+                    print("num_found => ",result["num_found"])
+                    print("docs => ",result["docs"] as? NSArray)
+                    
+                    if result["num_found"] as! Int == 0 {
+                        self.tableView.removeFromSuperview()
+                        self.tableLabel.text = "검색된 결과가 없습니다 😥"
+                        self.tableLabel.textColor = .systemRed
+                    }else {
+                        self.addSubview(self.tableView)
+                        self.tableView.snp.makeConstraints {(make) in
+                            make.topMargin.equalTo(0)
+                            make.leftMargin.equalTo(0)
+                            make.rightMargin.equalTo(0)
+                            make.bottomMargin.equalTo(0)
+                        }
+                    }
+                    
             }
         }
 }
@@ -112,7 +166,7 @@ extension SearchView : UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 30
+        return 10
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
